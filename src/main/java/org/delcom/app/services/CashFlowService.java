@@ -1,63 +1,64 @@
 package org.delcom.app.services;
 
-import org.delcom.app.entities.CashFlow;
-import org.delcom.app.repositories.CashFlowRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.UUID;
+
+import org.delcom.app.entities.CashFlow;
+import org.delcom.app.repositories.CashFlowRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CashFlowService {
 
     private final CashFlowRepository cashFlowRepository;
 
-    @Autowired
+    // Constructor-based injection
     public CashFlowService(CashFlowRepository cashFlowRepository) {
         this.cashFlowRepository = cashFlowRepository;
     }
 
+    @Transactional
     public CashFlow createCashFlow(String type, String source, String label, Integer amount, String description) {
         CashFlow cashFlow = new CashFlow(type, source, label, amount, description);
-        cashFlow.setId(UUID.randomUUID());
         return cashFlowRepository.save(cashFlow);
     }
 
     public List<CashFlow> getAllCashFlows(String search) {
-        if (search == null || search.trim().isEmpty()) {
-            return cashFlowRepository.findAll();
+        // Sesuai logika di test case
+        if (search != null && !search.trim().isEmpty()) {
+            return cashFlowRepository.findByKeyword(search);
         }
-        return cashFlowRepository.findByKeyword(search);
+        return cashFlowRepository.findAll();
     }
 
     public CashFlow getCashFlowById(UUID id) {
         return cashFlowRepository.findById(id).orElse(null);
     }
-    
+
     public List<String> getCashFlowLabels() {
         return cashFlowRepository.findDistinctLabels();
     }
 
+    @Transactional
     public CashFlow updateCashFlow(UUID id, String type, String source, String label, Integer amount, String description) {
-        CashFlow existing = getCashFlowById(id);
-        if (existing == null) {
-            return null;
-        }
+        CashFlow cashFlow = cashFlowRepository.findById(id).orElse(null);
 
-        // --- PERBAIKAN DI SINI ---
-        // Panggil setter langsung dengan String, karena konversi sudah ditangani di dalam entitas.
-        existing.setType(type);
-        existing.setSource(source);
-        existing.setLabel(label);
-        // Panggil setter langsung dengan Integer.
-        existing.setAmount(amount);
-        existing.setDescription(description);
-        
-        return cashFlowRepository.save(existing);
+        // Sesuai logika di test case, return null jika tidak ada
+        if (cashFlow != null) {
+            cashFlow.setType(type);
+            cashFlow.setSource(source);
+            cashFlow.setLabel(label);
+            cashFlow.setAmount(amount);
+            cashFlow.setDescription(description);
+            return cashFlowRepository.save(cashFlow);
+        }
+        return null;
     }
 
+    @Transactional
     public boolean deleteCashFlow(UUID id) {
+        // Sesuai logika di test case
         if (cashFlowRepository.existsById(id)) {
             cashFlowRepository.deleteById(id);
             return true;

@@ -1,115 +1,109 @@
 package org.delcom.app.controllers;
 
-import org.delcom.app.configs.ApiResponse;
-import org.delcom.app.entities.CashFlow;
-import org.delcom.app.services.CashFlowService;
-import org.delcom.app.types.EType;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.delcom.app.configs.ApiResponse;
+import org.delcom.app.entities.CashFlow;
+import org.delcom.app.services.CashFlowService;
+import org.springframework.web.bind.annotation.*;
+
 @RestController
-@RequestMapping("/api/cash-flows")
+@RequestMapping("/api/cash-flows") // Sesuai dengan app.rest di PDF
 public class CashFlowController {
 
     private final CashFlowService cashFlowService;
 
-    @Autowired
     public CashFlowController(CashFlowService cashFlowService) {
         this.cashFlowService = cashFlowService;
-    }
-    
-    // Fungsi bantuan untuk validasi
-    private boolean isInvalid(CashFlow cashFlow) {
-        // KITA PECAH JADI IF TERPISAH AGAR TIDAK ADA KUNING (PARTIAL COVERAGE)
-        
-        // 1. Cek Type
-        if (EType.fromString(cashFlow.getType()) == null) {
-            return true;
-        }
-
-        // Jika lolos semua, berarti data valid (tidak invalid)
-        return false;
     }
 
     @PostMapping
     public ApiResponse<Map<String, UUID>> createCashFlow(@RequestBody CashFlow cashFlow) {
-        if (isInvalid(cashFlow)) {
-             return new ApiResponse<>("fail", "Invalid data", null);
+        // Validasi sesuai test case
+        if (cashFlow.getType() == null || cashFlow.getType().trim().isEmpty() ||
+            cashFlow.getSource() == null || cashFlow.getSource().trim().isEmpty() ||
+            cashFlow.getLabel() == null || cashFlow.getLabel().trim().isEmpty() ||
+            cashFlow.getAmount() == null || cashFlow.getAmount() <= 0 || // Test case memeriksa '0' dan 'null'
+            cashFlow.getDescription() == null || cashFlow.getDescription().trim().isEmpty()) {
+            return new ApiResponse<>("fail", "Data tidak valid", null);
         }
-       
+
         CashFlow newCashFlow = cashFlowService.createCashFlow(
-            cashFlow.getType(),
-            cashFlow.getSource(),
-            cashFlow.getLabel(),
-            cashFlow.getAmount(),
-            cashFlow.getDescription()
+                cashFlow.getType(),
+                cashFlow.getSource(),
+                cashFlow.getLabel(),
+                cashFlow.getAmount(),
+                cashFlow.getDescription()
         );
 
-        Map<String, UUID> data = new HashMap<>();
-        data.put("id", newCashFlow.getId());
-        return new ApiResponse<>("success", "Berhasil menambahkan data", data);
+        // Response message dari PDF
+        return new ApiResponse<>("success", "Berhasil menambahkan data", Map.of("id", newCashFlow.getId()));
     }
 
-    // ... Bagian atas controller tetap sama ...
-
-    @PutMapping("/{id}")
-    public ApiResponse<CashFlow> updateCashFlow(@PathVariable UUID id, @RequestBody CashFlow cashFlow) {
-        // Validasi data invalid
-        if (isInvalid(cashFlow)) {
-            return new ApiResponse<>("fail", "Invalid data", null);
-        }
-
-        // Panggil service untuk update
-        CashFlow updated = cashFlowService.updateCashFlow(
-            id,
-            cashFlow.getType(),
-            cashFlow.getSource(),
-            cashFlow.getLabel(),
-            cashFlow.getAmount(),
-            cashFlow.getDescription()
-        );
-
-        return new ApiResponse<>("success", "Berhasil diperbarui", updated);
-        
-    }
-
-// ... Sisa controller tetap sama ...
-    
     @GetMapping
     public ApiResponse<Map<String, List<CashFlow>>> getAllCashFlows(@RequestParam(required = false) String search) {
-        Map<String, List<CashFlow>> data = new HashMap<>();
-        data.put("cashFlows", cashFlowService.getAllCashFlows(search));
-        return new ApiResponse<>("success", "Berhasil mengambil data", data);
+        List<CashFlow> cashFlows = cashFlowService.getAllCashFlows(search);
+        // Response message dan key "cash_flows" dari PDF
+        return new ApiResponse<>("success", "Berhasil mengambil data", Map.of("cash_flows", cashFlows));
     }
 
     @GetMapping("/{id}")
     public ApiResponse<Map<String, CashFlow>> getCashFlowById(@PathVariable UUID id) {
         CashFlow cashFlow = cashFlowService.getCashFlowById(id);
-        if (cashFlow != null) {
-            Map<String, CashFlow> data = new HashMap<>();
-            data.put("cashFlow", cashFlow);
-            return new ApiResponse<>("success", "Berhasil mengambil data", data);
+
+        if (cashFlow == null) {
+            return new ApiResponse<>("fail", "Data cash flow tidak ditemukan", null); // Message disesuaikan
         }
-        return new ApiResponse<>("fail", "Data tidak ditemukan", null);
+        // Response message dan key "cash_flow" dari PDF
+        return new ApiResponse<>("success", "Berhasil mengambil data", Map.of("cash_flow", cashFlow));
     }
 
-    @GetMapping("/labels")
+    @GetMapping("/labels") // Sesuai app.rest di PDF
     public ApiResponse<Map<String, List<String>>> getCashFlowLabels() {
-        Map<String, List<String>> data = new HashMap<>();
-        data.put("labels", cashFlowService.getCashFlowLabels());
-        return new ApiResponse<>("success", "Berhasil mengambil data", data);
+        List<String> labels = cashFlowService.getCashFlowLabels();
+        // Response message dan key "labels" dari PDF
+        return new ApiResponse<>("success", "Berhasil mengambil data", Map.of("labels", labels));
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<CashFlow> updateCashFlow(@PathVariable UUID id, @RequestBody CashFlow cashFlow) {
+        // Validasi sesuai test case
+        if (cashFlow.getType() == null || cashFlow.getType().trim().isEmpty() ||
+            cashFlow.getSource() == null || cashFlow.getSource().trim().isEmpty() ||
+            cashFlow.getLabel() == null || cashFlow.getLabel().trim().isEmpty() ||
+            cashFlow.getAmount() == null || cashFlow.getAmount() <= 0 ||
+            cashFlow.getDescription() == null || cashFlow.getDescription().trim().isEmpty()) {
+            return new ApiResponse<>("fail", "Data tidak valid", null);
+        }
+
+        CashFlow updatedCashFlow = cashFlowService.updateCashFlow(
+                id,
+                cashFlow.getType(),
+                cashFlow.getSource(),
+                cashFlow.getLabel(),
+                cashFlow.getAmount(),
+                cashFlow.getDescription()
+        );
+
+        if (updatedCashFlow == null) {
+            return new ApiResponse<>("fail", "Data cash flow tidak ditemukan", null); // Message disesuaikan
+        }
+
+        // Response message dari PDF (data: null)
+        return new ApiResponse<>("success", "Berhasil memperbarui data", null);
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<String> deleteCashFlow(@PathVariable UUID id) {
-        if (cashFlowService.deleteCashFlow(id)) {
-            return new ApiResponse<>("success", "Berhasil menghapus data", null);
+        boolean deleted = cashFlowService.deleteCashFlow(id);
+
+        if (!deleted) {
+            return new ApiResponse<>("fail", "Data cash flow tidak ditemukan", null); // Message disesuaikan
         }
-        return new ApiResponse<>("fail", "Gagal menghapus, ID tidak ditemukan", null);
+        // Response message dari PDF
+        return new ApiResponse<>("success", "Berhasil menghapus data", null);
     }
 }
